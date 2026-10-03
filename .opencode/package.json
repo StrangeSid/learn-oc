@@ -1,0 +1,11 @@
+{
+  "name": "learning-oc-opencode",
+  "version": "0.1.0",
+  "description": "Opencode project config deps for learning-oc (visual-tools diagram rendering).",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2",
+    "@opencode-ai/plugin": "^1.18.23"
+  }
+}

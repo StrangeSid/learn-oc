@@ -1,39 +1,71 @@
-# learn
+# learning-oc
 
-[![video](assets/thumbnail.png)](https://www.youtube.com/watch?v=kzcI5F4tGiU)
+Opencode port of [amosblomqvist/learn](https://github.com/amosblomqvist/learn) — a personal AI learning system from the video [How I Use AI to Learn Things](https://www.youtube.com/watch?v=kzcI5F4tGiU).
 
-My AI learning system from this video: [How I Use AI to Learn Things](https://www.youtube.com/watch?v=kzcI5F4tGiU).
+Run `opencode` in this directory to learn anything with the `teach` skill.
 
-This is a personal system I built for myself, shared as-is. Built as a pi configuration: the teaching philosophy encoded in a skill, a few small extensions, and agent definitions.
+## What's in it (opencode mapping)
 
-## What's in it
+Original was a `.pi` directory. This is the opencode equivalent:
 
-- `skills/teach/` — the philosophy and the process
-- `skills/visualize/` — adds a correct, minimal diagram to a lesson when an idea is clearer as a picture
-- `extensions/ask-user-question/` — the agent asks you questions through a UI popup
-- `extensions/quiz/` — graded questions with instant feedback (✓/✗, correct answer, explanation)
-- `extensions/md-log/` — link a markdown file to the session
-- `extensions/visual-tools/` — tools for visualization subagents
-- `agents/` — `researcher`, `svg-maker`, `mermaid-maker`: the subagents the system delegates to
-
-## Install
-
-This repo **is** a `.pi` directory. From your learning project's root:
-
-```bash
-git clone https://github.com/amosblomqvist/learn .pi
-```
-
-Then open pi in that directory. (Or copy the pieces you want into your existing project config.)
+| pi original | opencode port | Notes |
+|---|---|---|
+| `skills/teach/` | `.opencode/skills/teach/` | Philosophy + process. `quiz`/`ask_user_question` → built-in `question` tool (graded manually). `researcher` via `task`. |
+| `skills/visualize/` | `.opencode/skills/visualize/` | Brief a maker subagent via `task`, embed returned PNG filename. |
+| `agents/researcher`, `svg-maker`, `mermaid-maker` | `.opencode/agents/*.md` | `mode: subagent`. Invoke via `task` or `@mention`. No pinned model (inherits session model). |
+| `extensions/visual-tools/` | `.opencode/tools/write_mermaid.ts`, `edit_mermaid.ts`, `render_mermaid.ts`, `write_svg.ts`, `edit_svg.ts`, `render_svg.ts` + `.opencode/lib/viz-common.ts` | Same tool names. Render returns a path — maker must `read` the PNG to inspect (opencode has no inline-image tool result). Publishes to `viz/`. |
+| `extensions/quiz` + `extensions/ask-user-question` | Built-in `question` tool + conventions in `teach` skill | No custom TUI popup. Graded = `question` with options, then agent grades ✓/✗ + correct + explanation in the next message. Ungraded = `question` with custom answer allowed. See `PORT_NOTES.md`. |
+| `extensions/md-log` (`/md-log`, `/md-unlog`) | `.opencode/tools/learn_log.ts`, `learn_unlog.ts`, `learn_status.ts`, `learn_append.ts` + `.opencode/commands/md-log.md`, `md-unlog.md` | Agent-driven (not event-automatic). Agent appends lesson blocks via `learn_append` after each turn when a log is linked. Same Obsidian callout format. |
 
 ## Requirements
 
-- [pi](https://github.com/earendil-works/pi)
-- A subagent implementation, so the system can spawn the researcher and the visual makers. Recommended: [pi-interactive-subagents](https://github.com/amosblomqvist/pi-interactive-subagents) (tmux only). With it, everything works out of the box. Any other implementation works too, but expect to adapt the agent definitions, e.g. `agents/researcher.md` lists `safe_bash` in its tools, which is specific to that extension.
-- `ask-user-question` — use the copy bundled here. If your setup already has an `ask-user-question` extension, use **this** one in its place. Popups from different extensions serialize through a shared UI lock, which only works when it's the same implementation.
+- [opencode](https://opencode.ai) (any recent version with `skill`, `question`, `task` tools)
+- `bun` (opencode runs `bun install` in `.opencode/` at startup for `visual-tools` deps)
+- Diagrams: Chrome or Chromium (for Mermaid via `mmdc`), `rsvg-convert` (preferred) or ImageMagick `magick` (for SVG). On macOS: `brew install librsvg` is enough for SVG; Chrome for Mermaid.
+- The lesson log (`lessons/` or any `.md`) is meant to be viewed rendered, e.g. in Obsidian (LaTeX + `![[viz-...png|500]]` embeds + mermaid blocks). Keep `viz/` inside the vault so embeds resolve by filename.
 
-## Notes
+## Quick start
 
-You can run the system without subagents. The main session does the teaching. You just lose the researcher (truth verification) and the generated visuals.
+```bash
+cd ~/learning-oc
+bun install --cwd .opencode   # optional; opencode does this at startup
+opencode
+```
 
-The teaching skill is written for one learner (me). Edit the skill to fit how you learn best.
+Then in opencode:
+
+```
+/learn
+```
+
+Or just ask to learn something — the `teach` skill triggers on any teaching/explaining.
+
+Link a lesson log (file must already exist):
+
+```
+/md-log lessons/2026-10-03-example.md
+```
+
+Unlink:
+
+```
+/md-unlog
+```
+
+Check link:
+
+```
+# agent runs learn_status tool
+```
+
+## How a session runs
+
+1. `/learn <topic>` (or any "teach me X") → loads `teach` skill → **probe** (level via `question`, goal via `question`) → **plan** (researcher via `task`, dependency map as small mermaid graph, wait for go-ahead) → **teach loop** (motivate → establish → connect → quiz-check per node).
+2. When a picture earns its place → loads `visualize` skill → briefs `mermaid-maker` (relationships) or `svg-maker` (geometry) via `task` → embeds `![[viz-...png|500]]`.
+3. If a log is linked, every teaching message + Q&A is appended via `learn_append` in Obsidian callout format.
+
+See `AGENTS.md` (project instructions) and `PORT_NOTES.md` (pi → opencode deltas).
+
+## Acknowledgements
+
+Teaching philosophy, skills, agents, and visual-tools design by Amos Blomqvist. This port only adapts the wiring to opencode conventions.
