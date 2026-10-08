@@ -16,7 +16,11 @@ __pycache__/
 
 # Runtime / staging (never commit renders-in-progress or local log pointers)
 .memory/
+.learn-log.json
 .opencode/.learn-log.json
 viz/render-*.png
+viz/viz-*.png
 *.log
 lessons/*.tmp
+lessons/*.md
+!lessons/.gitkeep

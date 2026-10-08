@@ -1,71 +1,134 @@
-# learning-oc
+# learning-agent
 
-Opencode port of [amosblomqvist/learn](https://github.com/amosblomqvist/learn) — a personal AI learning system from the video [How I Use AI to Learn Things](https://www.youtube.com/watch?v=kzcI5F4tGiU).
+amosblomqvist's Learning System
 
-Run `opencode` in this directory to learn anything with the `teach` skill.
+[![video](assets/thumbnail.png)](https://www.youtube.com/watch?v=kzcI5F4tGiU)
 
-## What's in it (opencode mapping)
+This is a fork of [https://github.com/amosblomqvist/learn](https://github.com/amosblomqvist/learn) that works with any coding harness — adapted from the personal AI learning system featured in the video [How I Use AI to Learn Things](https://www.youtube.com/watch?v=kzcI5F4tGiU).
 
-Original was a `.pi` directory. This is the opencode equivalent:
+Works seamlessly with **any AI coding agent harness**:
+- **[OpenCode](https://opencode.ai)** (`opencode`)
+- **[Pi](https://github.com/earendil-works/pi)** (`pi`)
+- **[Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code)** (`claude`)
+- **Cursor / Codex / Windsurf / Aider / Any CLI Agent**
 
-| pi original | opencode port | Notes |
-|---|---|---|
-| `skills/teach/` | `.opencode/skills/teach/` | Philosophy + process. `quiz`/`ask_user_question` → built-in `question` tool (graded manually). `researcher` via `task`. |
-| `skills/visualize/` | `.opencode/skills/visualize/` | Brief a maker subagent via `task`, embed returned PNG filename. |
-| `agents/researcher`, `svg-maker`, `mermaid-maker` | `.opencode/agents/*.md` | `mode: subagent`. Invoke via `task` or `@mention`. No pinned model (inherits session model). |
-| `extensions/visual-tools/` | `.opencode/tools/write_mermaid.ts`, `edit_mermaid.ts`, `render_mermaid.ts`, `write_svg.ts`, `edit_svg.ts`, `render_svg.ts` + `.opencode/lib/viz-common.ts` | Same tool names. Render returns a path — maker must `read` the PNG to inspect (opencode has no inline-image tool result). Publishes to `viz/`. |
-| `extensions/quiz` + `extensions/ask-user-question` | Built-in `question` tool + conventions in `teach` skill | No custom TUI popup. Graded = `question` with options, then agent grades ✓/✗ + correct + explanation in the next message. Ungraded = `question` with custom answer allowed. See `PORT_NOTES.md`. |
-| `extensions/md-log` (`/md-log`, `/md-unlog`) | `.opencode/tools/learn_log.ts`, `learn_unlog.ts`, `learn_status.ts`, `learn_append.ts` + `.opencode/commands/md-log.md`, `md-unlog.md` | Agent-driven (not event-automatic). Agent appends lesson blocks via `learn_append` after each turn when a log is linked. Same Obsidian callout format. |
+---
 
-## Requirements
+## What's in it
 
-- [opencode](https://opencode.ai) (any recent version with `skill`, `question`, `task` tools)
-- `bun` (opencode runs `bun install` in `.opencode/` at startup for `visual-tools` deps)
-- Diagrams: Chrome or Chromium (for Mermaid via `mmdc`), `rsvg-convert` (preferred) or ImageMagick `magick` (for SVG). On macOS: `brew install librsvg` is enough for SVG; Chrome for Mermaid.
-- The lesson log (`lessons/` or any `.md`) is meant to be viewed rendered, e.g. in Obsidian (LaTeX + `![[viz-...png|500]]` embeds + mermaid blocks). Keep `viz/` inside the vault so embeds resolve by filename.
+- **`skills/teach/`**: The core teaching philosophy (unconditional truths first, "how could I have discovered this?", Socratic edge-probing, calibrated checks).
+- **`skills/visualize/`**: Minimal, verified diagrams (Mermaid for structure/relationships, SVG for spatial/geometry).
+- **`agents/`**: Specialist subagents (`researcher`, `mermaid-maker`, `svg-maker`).
+- **`scripts/`**: Harness-agnostic CLI utilities:
+  - `node scripts/viz.js doctor` — check diagram renderers.
+  - `node scripts/viz.js render mermaid|svg ...` — render and publish visuals.
+  - `node scripts/learn-log.js link|status|append|unlink` — mirror sessions to Obsidian.
+- **Obsidian Integration**: Renders LaTeX math natively (`$f(x)$`), resolves visual embeds (`![[viz-...png|500]]`), and formats lesson history using clean Obsidian callouts.
 
-## Quick start
+---
+
+## Quick Start by Harness
+
+### 1. OpenCode (`opencode`)
 
 ```bash
-cd ~/learning-oc
+cd learning-agent
 bun install --cwd .opencode   # optional; opencode does this at startup
 opencode
 ```
-
-Then in opencode:
-
+Inside OpenCode:
+```text
+/learn <topic>
 ```
-/learn
-```
-
-Or just ask to learn something — the `teach` skill triggers on any teaching/explaining.
-
-Link a lesson log (file must already exist):
-
-```
-/md-log lessons/2026-10-03-example.md
+To link an Obsidian lesson log:
+```text
+/md-log lessons/my-lesson.md
 ```
 
-Unlink:
+---
 
+### 2. Pi (`pi`)
+
+You can either run `pi` directly in this repo or clone it as your project's `.pi` directory:
+
+**Option A: Run inside this directory**
+```bash
+cd learning-agent
+pi
 ```
-/md-unlog
+Pi automatically discovers `.pi/` (which links to the extensions, agents, and skills) or `.agents/skills/`.
+
+**Option B: Clone as `.pi` in an existing vault/project**
+```bash
+cd "/path/to/Obsidian Vault/MyProject"
+git clone https://github.com/StrangeSid/learn-oc .pi
+pi
 ```
 
-Check link:
-
+Inside Pi:
+```text
+/skill:teach
 ```
-# agent runs learn_status tool
+Or start learning any topic directly.
+
+---
+
+### 3. Claude Code (`claude`)
+
+```bash
+cd learning-agent
+claude
+```
+Inside Claude Code:
+```text
+/learn <topic>
+```
+To link an Obsidian lesson log:
+```text
+/md-log lessons/my-lesson.md
+```
+Claude Code automatically reads `CLAUDE.md`, discovers slash commands from `.claude/commands/`, and uses `scripts/viz.js` and `scripts/learn-log.js` for rendering and log mirroring.
+
+---
+
+### 4. Cursor / Codex / Windsurf / Generic Agents
+
+Open this directory in your agent or editor. The harness will automatically pick up `AGENTS.md` and `.agents/skills/teach/SKILL.md`.
+
+Ask:
+```text
+Teach me <topic>
 ```
 
-## How a session runs
+---
 
-1. `/learn <topic>` (or any "teach me X") → loads `teach` skill → **probe** (level via `question`, goal via `question`) → **plan** (researcher via `task`, dependency map as small mermaid graph, wait for go-ahead) → **teach loop** (motivate → establish → connect → quiz-check per node).
-2. When a picture earns its place → loads `visualize` skill → briefs `mermaid-maker` (relationships) or `svg-maker` (geometry) via `task` → embeds `![[viz-...png|500]]`.
-3. If a log is linked, every teaching message + Q&A is appended via `learn_append` in Obsidian callout format.
+## Requirements for Diagrams & LaTeX
 
-See `AGENTS.md` (project instructions) and `PORT_NOTES.md` (pi → opencode deltas).
+- **SVG Diagrams**: `rsvg-convert` (preferred) or ImageMagick `magick`.  
+  On macOS: `brew install librsvg`
+- **Mermaid Diagrams**: `@mermaid-js/mermaid-cli` (`mmdc`) + Google Chrome or Chromium.  
+  Run `node scripts/viz.js doctor` anytime to check your setup:
+  ```bash
+  node scripts/viz.js doctor
+  ```
+- **Obsidian**: The lesson log (`lessons/` or any markdown file in your vault) renders best in Obsidian, where LaTeX math and `![[viz-...png|500]]` wikilink embeds display inline. Keep `viz/` inside your vault so embeds resolve automatically.
+
+---
+
+## How a Session Runs
+
+1. **Probe**: Fast calibrated checks bracket the learner's frontier on every foundation supporting the goal. Graded immediately.
+2. **Plan**: Verify facts, build a topological dependency map (roots = unconditional truths, sink = goal), present a small Mermaid diagram, and get the learner's go-ahead.
+3. **Teach Loop**: For each node:
+   - **Motivate** (why was this necessary?)
+   - **Establish** (clear, caveat-free truth)
+   - **Connect** (link explicitly to previous nodes)
+   - **Quiz-check** (confirm it landed before building on it)
+4. **Visualize**: When an idea genuinely needs a picture, the system authors it, renders it, visually inspects the PNG for errors, and embeds the verified image.
+5. **Log**: When linked, every teaching turn is cleanly preserved in Obsidian callout format.
+
+---
 
 ## Acknowledgements
 
-Teaching philosophy, skills, agents, and visual-tools design by Amos Blomqvist. This port only adapts the wiring to opencode conventions.
+Teaching philosophy, pedagogy, skills, agents, and visual-tools architecture originally created by [Amos Blomqvist](https://github.com/amosblomqvist/learn).

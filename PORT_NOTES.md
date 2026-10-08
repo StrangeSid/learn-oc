@@ -1,58 +1,82 @@
-# PORT_NOTES — pi `learn` → opencode `learning-oc`
+# PORT_NOTES — Multi-Harness AI Learning System
 
-Source: https://github.com/amosblomqvist/learn (a `.pi` directory: skills + pi extensions + pi agents).
-This project is the opencode equivalent. Philosophy and pedagogy are unchanged; only the wiring differs.
+Original: [amosblomqvist/learn](https://github.com/amosblomqvist/learn) (designed originally for Pi).  
+This repository has been adapted into a **universal multi-harness system** that works identically with:
+- **Pi** (interactive or standard)
+- **OpenCode** (native tools & agents)
+- **Claude Code** (`CLAUDE.md`, slash commands, and CLI scripts)
+- **Codex / Cursor / Windsurf / Generic CLI Agents** (`AGENTS.md`, `.agents/skills`, standard CLI tools)
 
-## 1. Skills — same content, new tool names
+The core teaching philosophy, pedagogy, and visual verification workflow are preserved across all harnesses.
 
-- `teach` and `visualize` SKILL.md bodies are ~95% verbatim from pi. Only the tooling sections changed.
-- Pi's `subagent(agent="...", task="...")` → opencode `task` (with `subagent_type="..."`) or `@mention`. Briefs must be self-contained in both (makers/researcher run isolated).
-- Pi's `safe_bash`/`web_search`/`web_fetch` → opencode `bash`/`websearch`/`webfetch`. The `researcher` agent is now read-only + web (bash denied; it never needed shell).
-- No pinned models. Pi pinned `researcher` to `openrouter/z-ai/glm-5.3` and makers to `anthropic/claude-sonnet-5`. Opencode agents here inherit the session model so the project works with any provider. If you want pinned models, add `model:` to `.opencode/agents/*.md`.
+---
 
-## 2. `quiz` + `ask_user_question` → built-in `question` + conventions (no code)
+## 1. Universal Layout Map
 
-Pi shipped two TUI-popup extensions with automatic grading (`quiz`: ✓/✗ + correct + explanation, shuffle, "I don't know", note field, shared UI lock). Opencode already has a built-in `question` tool, so there is nothing to install — but there is also no automatic grader.
-
-Convention (enforced by the `teach` skill, not by code):
-
-| pi | opencode |
-|---|---|
-| Graded `quiz` (options + `correctAnswer` + `explanation`, shuffled, auto-graded) | `question` with options. Agent keeps correct answer + explanation private, then grades in the NEXT message: `✓ Correct!` / `✗ Incorrect.` + correct answer + explanation. Distractor-hygiene rules (bare claims, mutate-from-correct, no asymmetric bolding) apply unchanged. "I don't know" arrives as a custom answer — treat as a genuine gap, never as wrong. |
-| Ungraded `ask_user_question` (preferences, goal, direction) | `question` with no right answer. Never graded. |
-
-Practical consequences: option order is whatever you write (shuffle manually if you care — put the correct answer in different positions across questions); quiz history lives in the visible transcript + your own floor/ceiling notes (pi logged structured `details` — here you track strands yourself).
-
-## 3. `md-log` → `learn_*` tools (agent-driven, not event-automatic)
-
-Pi's `md-log` hooked `message_end`/`tool_call`/`tool_result` events and mirrored automatically (including backfill and post-shuffle quiz order). Opencode plugins expose different hooks, so this port makes logging explicit:
-
-- `learn_log <existing-file>` / `learn_unlog` / `learn_status` / `learn_append <markdown-block>` in `.opencode/tools/`, plus `/md-log` and `/md-unlog` commands (same names as pi for muscle memory).
-- The `teach` skill instructs the agent to call `learn_status` at session start and `learn_append` after every teaching message + Q&A when linked. Same Obsidian callout format (`> [!abstract] PI`, `> [!quote] YOU`, `> [!question]`, `> [!success]/[!failure]`, `![[viz-...|500]]` embeds).
-- No automatic backfill: linking mid-session only captures what happens after linking. Link at the start (`/learn` reminds you).
-
-## 4. `visual-tools` → same tool names, path-based inspection
-
-- Tool names are identical: `write_mermaid` / `edit_mermaid` / `render_mermaid`, `write_svg` / `edit_svg` / `render_svg`. Staging is per-session (keyed by opencode `sessionID`, not pid), publishing to `viz/` as `viz-<slug>-<timestamp>.png` is identical.
-- One real difference: pi returned the rendered PNG **inline** in the tool result; opencode custom tools return text (+ a file attachment when available). So `render_*` returns a **PATH** and the maker **must `read` the PNG** to look at it before iterating/publishing. Agent prompts (`mermaid-maker.md`, `svg-maker.md`) encode this.
-- Deps: `.opencode/package.json` (`@mermaid-js/mermaid-cli`, `@opencode-ai/plugin`). Opencode runs `bun install` there at startup. System binaries unchanged: Chrome/Chromium for mermaid, `rsvg-convert` (or `magick`) for SVG.
-- Shared code moved from `extensions/visual-tools/tools/_common.ts` to `.opencode/lib/viz-common.ts` (kept out of `tools/` so it isn't loaded as a tool). Lesson-log state helper lives at `.opencode/lib/learn-log-state.ts`.
-
-## 5. Layout map
-
-```
-.pi/skills/teach/SKILL.md            → .opencode/skills/teach/SKILL.md
-.pi/skills/visualize/SKILL.md        → .opencode/skills/visualize/SKILL.md
-.pi/agents/{researcher,svg-maker,mermaid-maker}.md → .opencode/agents/*.md (mode: subagent)
-.pi/extensions/visual-tools/         → .opencode/tools/write_mermaid.ts … render_svg.ts + .opencode/lib/viz-common.ts
-.pi/extensions/quiz.ts               → built-in `question` + teach-skill grading convention
-.pi/extensions/ask-user-question.ts  → built-in `question` (ungraded)
-.pi/extensions/md-log.ts            → .opencode/tools/learn_{log,unlog,status,append}.ts + commands md-log/md-unlog
+```text
+├── .agents/skills/            # Standard Agent Skills spec (Pi, Codex, and others)
+│   ├── teach/SKILL.md
+│   └── visualize/SKILL.md
+├── skills/                    # Universal skill files (referenced by Pi and harnesses)
+│   ├── teach/SKILL.md
+│   └── visualize/SKILL.md
+├── agents/                    # Subagent definitions for Pi / standard harnesses
+│   ├── researcher.md
+│   ├── mermaid-maker.md
+│   └── svg-maker.md
+├── .opencode/                 # OpenCode configuration
+│   ├── agents/*.md            # OpenCode mode: subagent + permission controls
+│   ├── tools/*.ts             # Custom OpenCode tools (learn_*, write_*, render_*)
+│   ├── commands/*.md          # Slash commands (/learn, /md-log, /md-unlog)
+│   └── skills/                # Mirrored / synchronized with universal skills
+├── .claude/                   # Claude Code configuration
+│   └── commands/*.md          # Slash commands (/learn, /md-log, /md-unlog)
+├── .pi/                       # Pi project directory symlinks
+│   ├── skills -> ../skills
+│   ├── agents -> ../agents
+│   └── extensions -> ../extensions
+├── extensions/                # Native Pi extensions (quiz, ask-user-question, md-log, visual-tools)
+├── scripts/                   # CLI helpers for harnesses without custom extension tools
+│   ├── viz.js                 # Standalone Mermaid / SVG renderer & publisher
+│   └── learn-log.js           # Standalone Obsidian lesson log manager
+├── AGENTS.md                  # Unified agent instructions for all harnesses
+├── CLAUDE.md                  # Project instructions for Claude Code
+└── viz/                       # Published lesson visual artifacts
 ```
 
-## 6. Known limitations
+---
 
-- No shared-UI-lock popups: concurrent `question` calls serialize naturally in opencode's turn loop; avoid firing two `question`s in one block.
-- No `RESULT`-inline images: makers depend on `read` for PNG inspection — image quality of `read` matches what the learner gets (same file).
-- Quiz shuffle/anti-position-bias is manual. Vary correct-answer positions yourself.
-- Log file must live where Obsidian sees it. `viz/` embeds resolve by filename only if `viz/` is inside the vault — keep this project (or at least `viz/` + linked log) in the vault, same as pi.
+## 2. Capability Mapping Across Harnesses
+
+| Feature | Pi Original | OpenCode | Claude Code & Generic CLI |
+|---|---|---|---|
+| **Teaching Skill** | Native `skills/teach` | `.opencode/skills/teach` or `/learn` | `skills/teach/SKILL.md` or `/learn` |
+| **Visualizing Skill** | Native `skills/visualize` | `.opencode/skills/visualize` | `skills/visualize/SKILL.md` |
+| **Graded Checks (Quiz)** | TUI popup (`quiz` tool), auto-graded | `question` tool with options, agent grades next turn | Options in chat, agent grades next turn |
+| **Ungraded Forks (Preferences)**| `ask_user_question` tool | `question` tool (no correct answer) | Chat question without grading |
+| **Fact Verification** | `subagent("researcher", ...)` | `task(subagent_type="researcher", ...)` | Direct web search before stating uncertain claims |
+| **Diagram Generation** | `mermaid-maker` & `svg-maker` | `task` maker subagents with `render_*` | Maker subagents or `node scripts/viz.js render` |
+| **Diagram Verification** | Inline result in tool output | Path returned, agent uses `read` | Agent inspects rendered PNG with view tool |
+| **Lesson Log Mirroring** | Event-automatic via `extensions/md-log.ts` | Agent-driven via `learn_append` tool | `node scripts/learn-log.js append` or direct file append |
+
+---
+
+## 3. Visual Verification Architecture
+
+Visual diagrams must always be **visually inspected before publishing**:
+1. **Source authoring**: Minimal Mermaid or SVG source focused on ONE core concept.
+2. **Rendering**:
+   - In Pi / OpenCode: via custom tools `render_mermaid` / `render_svg`.
+   - In Claude Code / CLI: via `node scripts/viz.js render mermaid|svg "<source>"`.
+3. **Inspection**:
+   - The agent reads / views the generated PNG to confirm no overlapping labels, correct geometry, and alignment with the brief.
+4. **Publishing**:
+   - The PNG is published into `viz/` as `viz-<slug>-<timestamp>.png`.
+   - Embedded in the response as `![[viz-<slug>-<timestamp>.png|500]]` for native Obsidian display.
+
+---
+
+## 4. Shared State Across Harnesses
+
+- The lesson log state is tracked in both `.opencode/.learn-log.json` and `.learn-log.json`.
+- Running `/md-log` in OpenCode or `node scripts/learn-log.js link` in Claude Code / CLI updates both paths so switching between harnesses maintains continuity.

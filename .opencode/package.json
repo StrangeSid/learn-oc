@@ -1,11 +1,11 @@
 {
-  "name": "learning-oc-opencode",
+  "name": "learning-agent",
   "version": "0.1.0",
-  "description": "Opencode project config deps for learning-oc (visual-tools diagram rendering).",
+  "description": "amosblomqvist's Learning System",
   "type": "module",
   "private": true,
   "dependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.2",
-    "@opencode-ai/plugin": "^1.18.23"
+    "@opencode-ai/plugin": "1.18.33"
   }
 }
